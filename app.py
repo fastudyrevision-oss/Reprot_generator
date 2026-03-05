@@ -14,7 +14,12 @@ from mysql.connector import Error
 from datetime import datetime
 import json
 import logging
+import os
 from typing import Tuple
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Import custom modules
 from sql_validator import QueryValidator, validate_ai_generated_query
@@ -27,15 +32,20 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__, template_folder=".", static_folder="static")
 CORS(app)
 
-# Initialize Gemini client with API key
-client = genai.Client(api_key="AIzaSyD2djveEDIRAOkcU5_6QCVfmlsFrSzol4w")
+# Initialize Gemini client with API key from environment variable
+gemini_api_key = os.getenv('GEMINI_API_KEY')
+if not gemini_api_key:
+    logger.warning("⚠️ GEMINI_API_KEY not found in .env file!")
+    raise ValueError("GEMINI_API_KEY environment variable is required")
 
-# Database configuration
+client = genai.Client(api_key=gemini_api_key)
+
+# Database configuration from environment variables
 DATABASE_CONFIG = {
-    'host': 'localhost',
-    'user': 'root',
-    'password': 'root',  # Update with your MySQL password if needed
-    'database': 'gemini_reports'
+    'host': os.getenv('DB_HOST', 'localhost'),
+    'user': os.getenv('DB_USER', 'root'),
+    'password': os.getenv('DB_PASSWORD', ''),
+    'database': os.getenv('DB_NAME', 'gemini_reports')
 }
 
 def get_db_connection():

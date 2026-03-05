@@ -6,13 +6,18 @@ import mysql.connector
 from mysql.connector import Error
 from datetime import datetime, timedelta
 import random
+import os
+from dotenv import load_dotenv
 
-# Database configuration
+# Load environment variables from .env file
+load_dotenv()
+
+# Database configuration from environment variables
 DATABASE_CONFIG = {
-    'host': 'localhost',
-    'user': 'root',
-    'password': 'root',  # Update with your MySQL password if needed
-    'database': 'gemini_reports'
+    'host': os.getenv('DB_HOST', 'localhost'),
+    'user': os.getenv('DB_USER', 'root'),
+    'password': os.getenv('DB_PASSWORD', ''),
+    'database': os.getenv('DB_NAME', 'gemini_reports')
 }
 
 def create_database_and_tables():
@@ -132,12 +137,17 @@ def insert_sample_data():
         
         cursor = connection.cursor()
         
+        # Disable foreign key checks temporarily
+        cursor.execute("SET FOREIGN_KEY_CHECKS=0")
+        connection.commit()
+        
         # Clear existing data
         cursor.execute("DELETE FROM reviews")
         cursor.execute("DELETE FROM inventory_logs")
         cursor.execute("DELETE FROM sales")
         cursor.execute("DELETE FROM products")
         cursor.execute("DELETE FROM customers")
+        connection.commit()
         
         # Insert customers
         customers_data = [
@@ -157,6 +167,7 @@ def insert_sample_data():
             "INSERT INTO customers (name, email, phone, country, registration_date, status) VALUES (%s, %s, %s, %s, %s, %s)",
             customers_data
         )
+        connection.commit()  # Commit after customers
         print(f"✓ Inserted {len(customers_data)} customers")
         
         # Insert products
@@ -177,6 +188,7 @@ def insert_sample_data():
             "INSERT INTO products (name, category, price, stock_quantity, created_date, status) VALUES (%s, %s, %s, %s, %s, %s)",
             products_data
         )
+        connection.commit()  # Commit after products
         print(f"✓ Inserted {len(products_data)} products")
         
         # Insert sales
@@ -198,6 +210,7 @@ def insert_sample_data():
             "INSERT INTO sales (customer_id, product_id, quantity, unit_price, total_amount, sale_date, payment_status) VALUES (%s, %s, %s, %s, %s, %s, %s)",
             sales_data
         )
+        connection.commit()  # Commit after sales
         print(f"✓ Inserted {len(sales_data)} sales records")
         
         # Insert inventory logs
@@ -241,6 +254,9 @@ def insert_sample_data():
             reviews_data
         )
         print(f"✓ Inserted {len(reviews_data)} reviews")
+        
+        # Re-enable foreign key checks before final commit
+        cursor.execute("SET FOREIGN_KEY_CHECKS=1")
         
         connection.commit()
         cursor.close()
