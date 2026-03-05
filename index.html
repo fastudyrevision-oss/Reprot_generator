@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini Report Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            max-width: 1000px;
+            margin: 0 auto;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            margin-bottom: 5px;
+            font-size: 28px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #e0e0e0;
+            background: #f8f9fa;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 15px 20px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            color: #666;
+            transition: all 0.3s;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+        }
+
+        .tab-btn:hover {
+            background: #f0f0f0;
+        }
+
+        .tab-btn.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 30px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 14px;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 100px;
+            transition: border-color 0.3s;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 30px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+            min-width: 120px;
+        }
+
+        .btn-send {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-send:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-send:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-clear {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-clear:hover {
+            background: #e0e0e0;
+        }
+
+        .response-section {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 2px solid #f0f0f0;
+        }
+
+        .response-section h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+
+        .response-box {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            border-radius: 5px;
+            line-height: 1.6;
+            color: #333;
+            display: none;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .response-box.visible {
+            display: block;
+        }
+
+        .response-box pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            margin-top: 15px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        table th {
+            background: #667eea;
+            color: white;
+            padding: 10px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        table td {
+            padding: 10px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        table tr:nth-child(even) {
+            background: #f0f0f0;
+        }
+
+        table tr:hover {
+            background: #e8eaf6;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+            margin-bottom: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            background: #fee;
+            color: #c33;
+            padding: 12px;
+            border-radius: 5px;
+            margin-top: 10px;
+            display: none;
+            border-left: 4px solid #c33;
+        }
+
+        .error-message.visible {
+            display: block;
+        }
+
+        .success-message {
+            background: #efe;
+            color: #3c3;
+            padding: 12px;
+            border-radius: 5px;
+            margin-top: 10px;
+            display: none;
+            border-left: 4px solid #3c3;
+        }
+
+        .success-message.visible {
+            display: block;
+        }
+
+        .question-display {
+            background: #e8eaf6;
+            padding: 12px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            color: #333;
+            border-left: 4px solid #667eea;
+        }
+
+        .question-display strong {
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .query-display {
+            background: #f5f5f5;
+            padding: 12px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            color: #333;
+            border-left: 4px solid #ff9800;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            overflow-x: auto;
+        }
+
+        .query-display strong {
+            font-weight: 600;
+            color: #ff9800;
+        }
+
+        .stats-box {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            text-align: center;
+            border-left: 4px solid #667eea;
+        }
+
+        .stat-card .number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-card .label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>✨ Gemini Report Generator</h1>
+            <p>AI-powered analytics and database reporting system</p>
+        </div>
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="general">General Questions</button>
+            <button class="tab-btn" data-tab="reports">Database Reports</button>
+        </div>
+
+        <!-- General Questions Tab -->
+        <div id="general" class="tab-content active">
+            <form id="askForm">
+                <div class="form-group">
+                    <label for="question">Your Question</label>
+                    <textarea 
+                        id="question" 
+                        name="question" 
+                        placeholder="Ask anything... e.g., 'Explain machine learning' or 'What is AI?'"
+                        required
+                    ></textarea>
+                </div>
+
+                <div class="button-group">
+                    <button type="submit" class="btn-send" id="sendBtn">Send Request</button>
+                    <button type="reset" class="btn-clear">Clear</button>
+                </div>
+
+                <div class="error-message" id="errorMessage"></div>
+                <div class="success-message" id="successMessage"></div>
+            </form>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Processing your request...</p>
+            </div>
+
+            <div class="response-section">
+                <h3>Response</h3>
+                <div id="questionDisplay" class="question-display" style="display: none;"></div>
+                <div class="response-box" id="responseBox">
+                    <pre id="responseText"></pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- Database Reports Tab -->
+        <div id="reports" class="tab-content">
+            <form id="reportForm">
+                <div class="form-group">
+                    <label for="reportQuestion">Ask about the database</label>
+                    <textarea 
+                        id="reportQuestion" 
+                        name="reportQuestion" 
+                        placeholder="e.g., 'How many sales did we have last month?' or 'Show me the highest rated products' or 'List all customers from USA'"
+                        required
+                    ></textarea>
+                </div>
+
+                <div class="button-group">
+                    <button type="submit" class="btn-send" id="reportBtn">Generate Report</button>
+                    <button type="reset" class="btn-clear">Clear</button>
+                </div>
+
+                <div class="error-message" id="reportErrorMessage"></div>
+                <div class="success-message" id="reportSuccessMessage"></div>
+            </form>
+
+            <div class="loading" id="reportLoading">
+                <div class="spinner"></div>
+                <p>Generating report...</p>
+            </div>
+
+            <div class="response-section">
+                <h3>Report Results</h3>
+                <div id="reportQuestionDisplay" class="question-display" style="display: none;"></div>
+                <div id="reportQueryDisplay" class="query-display" style="display: none;"></div>
+                <div id="reportStats" class="stats-box" style="display: none;"></div>
+                <div class="response-box" id="reportBox">
+                    <div id="reportContent"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Tab switching
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const tabName = btn.dataset.tab;
+                
+                // Hide all tabs
+                document.querySelectorAll('.tab-content').forEach(tab => {
+                    tab.classList.remove('active');
+                });
+                
+                // Remove active from all buttons
+                document.querySelectorAll('.tab-btn').forEach(b => {
+                    b.classList.remove('active');
+                });
+                
+                // Show selected tab
+                document.getElementById(tabName).classList.add('active');
+                btn.classList.add('active');
+            });
+        });
+
+        // ===== GENERAL QUESTIONS TAB =====
+        const askForm = document.getElementById('askForm');
+        const questionInput = document.getElementById('question');
+        const sendBtn = document.getElementById('sendBtn');
+        const loading = document.getElementById('loading');
+        const responseBox = document.getElementById('responseBox');
+        const responseText = document.getElementById('responseText');
+        const errorMessage = document.getElementById('errorMessage');
+        const successMessage = document.getElementById('successMessage');
+        const questionDisplay = document.getElementById('questionDisplay');
+
+        askForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const question = questionInput.value.trim();
+            if (!question) {
+                showError('Please enter a question', 'errorMessage');
+                return;
+            }
+
+            hideMessages('errorMessage', 'successMessage');
+            loading.classList.add('active');
+            sendBtn.disabled = true;
+
+            try {
+                const response = await fetch('/api/ask', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question: question })
+                });
+
+                const data = await response.json();
+                loading.classList.remove('active');
+
+                if (data.success) {
+                    questionDisplay.innerHTML = `<strong>Question:</strong> ${escapeHtml(question)}`;
+                    questionDisplay.style.display = 'block';
+                    responseText.textContent = data.response;
+                    responseBox.classList.add('visible');
+                    showSuccess('Response received!', 'successMessage');
+                } else {
+                    showError(data.error || 'Error occurred', 'errorMessage');
+                }
+            } catch (error) {
+                loading.classList.remove('active');
+                showError('Connection failed: ' + error.message, 'errorMessage');
+            } finally {
+                sendBtn.disabled = false;
+            }
+        });
+
+        // ===== DATABASE REPORTS TAB =====
+        const reportForm = document.getElementById('reportForm');
+        const reportQuestionInput = document.getElementById('reportQuestion');
+        const reportBtn = document.getElementById('reportBtn');
+        const reportLoading = document.getElementById('reportLoading');
+        const reportBox = document.getElementById('reportBox');
+        const reportContent = document.getElementById('reportContent');
+        const reportErrorMessage = document.getElementById('reportErrorMessage');
+        const reportSuccessMessage = document.getElementById('reportSuccessMessage');
+        const reportQuestionDisplay = document.getElementById('reportQuestionDisplay');
+        const reportQueryDisplay = document.getElementById('reportQueryDisplay');
+        const reportStats = document.getElementById('reportStats');
+
+        reportForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const question = reportQuestionInput.value.trim();
+            if (!question) {
+                showError('Please enter a database question', 'reportErrorMessage');
+                return;
+            }
+
+            hideMessages('reportErrorMessage', 'reportSuccessMessage');
+            reportLoading.classList.add('active');
+            reportBox.classList.remove('visible');
+            reportBtn.disabled = true;
+
+            try {
+                const response = await fetch('/api/report', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question: question })
+                });
+
+                const data = await response.json();
+                reportLoading.classList.remove('active');
+
+                if (data.success) {
+                    // Display question
+                    reportQuestionDisplay.innerHTML = `<strong>Question:</strong> ${escapeHtml(question)}`;
+                    reportQuestionDisplay.style.display = 'block';
+                    
+                    // Display query
+                    reportQueryDisplay.innerHTML = `<strong>Generated SQL Query:</strong><br><code>${escapeHtml(data.query)}</code>`;
+                    reportQueryDisplay.style.display = 'block';
+                    
+                    // Display stats
+                    reportStats.innerHTML = `
+                        <div class="stat-card">
+                            <div class="number">${data.record_count}</div>
+                            <div class="label">Records</div>
+                        </div>
+                    `;
+                    reportStats.style.display = 'grid';
+                    
+                    // Display results
+                    if (data.data && data.data.length > 0) {
+                        reportContent.innerHTML = createTable(data.data);
+                    } else {
+                        reportContent.innerHTML = '<p>No results found.</p>';
+                    }
+                    
+                    reportBox.classList.add('visible');
+                    showSuccess('Report generated successfully!', 'reportSuccessMessage');
+                } else {
+                    showError(data.error || 'Error generating report', 'reportErrorMessage');
+                }
+            } catch (error) {
+                reportLoading.classList.remove('active');
+                showError('Connection failed: ' + error.message, 'reportErrorMessage');
+            } finally {
+                reportBtn.disabled = false;
+            }
+        });
+
+        // Utility functions
+        function createTable(data) {
+            if (!data || data.length === 0) return '<p>No data</p>';
+            
+            const headers = Object.keys(data[0]);
+            let html = '<table><thead><tr>';
+            
+            headers.forEach(header => {
+                html += `<th>${escapeHtml(header)}</th>`;
+            });
+            
+            html += '</tr></thead><tbody>';
+            
+            data.forEach(row => {
+                html += '<tr>';
+                headers.forEach(header => {
+                    const value = row[header];
+                    html += `<td>${escapeHtml(String(value) || '')}</td>`;
+                });
+                html += '</tr>';
+            });
+            
+            html += '</tbody></table>';
+            return html;
+        }
+
+        function showError(message, elementId) {
+            document.getElementById(elementId).textContent = message;
+            document.getElementById(elementId).classList.add('visible');
+        }
+
+        function showSuccess(message, elementId) {
+            document.getElementById(elementId).textContent = message;
+            document.getElementById(elementId).classList.add('visible');
+        }
+
+        function hideMessages(...elementIds) {
+            elementIds.forEach(id => {
+                document.getElementById(id).classList.remove('visible');
+            });
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
