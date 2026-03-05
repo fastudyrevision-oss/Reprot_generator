@@ -531,29 +531,115 @@
 
                 if (data.success) {
                     // Display question
-                    reportQuestionDisplay.innerHTML = `<strong>Question:</strong> ${escapeHtml(question)}`;
+                    reportQuestionDisplay.innerHTML = `<strong>Your Question:</strong> "${escapeHtml(question)}"`;
                     reportQuestionDisplay.style.display = 'block';
                     
-                    // Display query
-                    reportQueryDisplay.innerHTML = `<strong>Generated SQL Query:</strong><br><code>${escapeHtml(data.query)}</code>`;
-                    reportQueryDisplay.style.display = 'block';
+                    // Build report content
+                    let reportHTML = '';
                     
-                    // Display stats
-                    reportStats.innerHTML = `
-                        <div class="stat-card">
-                            <div class="number">${data.record_count}</div>
-                            <div class="label">Records</div>
+                    // 1. AI Summary (Main finding)
+                    reportHTML += `
+                        <div style="background: #f0f7ff; border-left: 4px solid #2196F3; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+                            <h4 style="color: #1976D2; margin: 0 0 10px 0;">📊 Analysis Summary</h4>
+                            <p style="margin: 0; line-height: 1.6; color: #333;">${escapeHtml(data.summary)}</p>
                         </div>
                     `;
-                    reportStats.style.display = 'grid';
                     
-                    // Display results
-                    if (data.data && data.data.length > 0) {
-                        reportContent.innerHTML = createTable(data.data);
-                    } else {
-                        reportContent.innerHTML = '<p>No results found.</p>';
+                    // 2. Key Insights
+                    if (data.key_insights && data.key_insights.length > 0) {
+                        reportHTML += `
+                            <div style="background: #f5f5f5; border-left: 4px solid #FF9800; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+                                <h4 style="color: #F57C00; margin: 0 0 10px 0;">💡 Key Insights</h4>
+                                <ul style="margin: 0; padding-left: 20px;">
+                                    ${data.key_insights.map(insight => `<li style="margin: 5px 0; color: #333;">${escapeHtml(insight)}</li>`).join('')}
+                                </ul>
+                            </div>
+                        `;
                     }
                     
+                    // 3. Confidence & Match Indicator
+                    const confidenceColor = data.confidence >= 80 ? '#4CAF50' : data.confidence >= 60 ? '#FF9800' : '#f44336';
+                    const matchIcon = data.matches_expectation ? '✅' : '⚠️';
+                    
+                    reportHTML += `
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                            <div style="background: #f9f9f9; padding: 15px; border-radius: 5px; border: 1px solid #e0e0e0;">
+                                <div style="font-size: 14px; color: #666; margin-bottom: 5px;">📈 Confidence Level</div>
+                                <div style="font-size: 24px; font-weight: bold; color: ${confidenceColor};">${data.confidence}%</div>
+                                <div style="font-size: 12px; color: #999; margin-top: 5px;">
+                                    ${data.confidence >= 80 ? 'High confidence in results' : data.confidence >= 60 ? 'Moderate confidence' : 'Low confidence - review carefully'}
+                                </div>
+                            </div>
+                            <div style="background: #f9f9f9; padding: 15px; border-radius: 5px; border: 1px solid #e0e0e0;">
+                                <div style="font-size: 14px; color: #666; margin-bottom: 5px;">✓ Meets Expectations</div>
+                                <div style="font-size: 24px; font-weight: bold; color: ${data.matches_expectation ? '#4CAF50' : '#f44336'};">${matchIcon}</div>
+                                <div style="font-size: 12px; color: #999; margin-top: 5px;">
+                                    ${data.matches_expectation ? 'Results align with your question' : 'May need refinement'}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // 4. Recommendation if needed
+                    if (data.recommendation) {
+                        reportHTML += `
+                            <div style="background: #fff3e0; border-left: 4px solid #FF9800; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+                                <h4 style="color: #F57C00; margin: 0 0 10px 0;">💬 Recommendation</h4>
+                                <p style="margin: 0; color: #333;">${escapeHtml(data.recommendation)}</p>
+                            </div>
+                        `;
+                    }
+                    
+                    // 5. Retry information
+                    if (data.retry_info) {
+                        reportHTML += `
+                            <div style="background: #e3f2fd; border-left: 4px solid #2196F3; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+                                <h4 style="color: #1976D2; margin: 0 0 10px 0;">🔄 Query Optimization</h4>
+                                <p style="margin: 0; color: #333;">
+                                    This report was generated using ${data.retry_info.attempts} query attempt(s).
+                                    ${data.retry_info.improved ? '✅ Results improved on retry.' : 'Consider refining your question.'}
+                                </p>
+                            </div>
+                        `;
+                    }
+                    
+                    // 6. Raw Data Stats
+                    reportHTML += `
+                        <div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+                            <h4 style="color: #333; margin: 0 0 10px 0;">📋 Data Details</h4>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                                <div>
+                                    <div style="font-size: 14px; color: #666;">Records Found</div>
+                                    <div style="font-size: 20px; font-weight: bold; color: #667eea;">${data.record_count}</div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 14px; color: #666;">Timestamp</div>
+                                    <div style="font-size: 14px; color: #999;">${new Date(data.timestamp).toLocaleString()}</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // 7. Raw Data Table (Collapsible)
+                    if (data.data && data.data.length > 0) {
+                        reportHTML += `
+                            <div style="margin-top: 20px;">
+                                <button style="background: #f5f5f5; border: 1px solid #ddd; padding: 10px 15px; border-radius: 5px; cursor: pointer; width: 100%; text-align: left; color: #333; font-weight: 600;" 
+                                        onclick="toggleRawData()">
+                                    ▶ View Raw Data Table (${data.record_count} rows)
+                                </button>
+                                <div id="rawDataDiv" style="display: none; margin-top: 10px; border: 1px solid #e0e0e0; border-radius: 5px; overflow-x: auto;">
+                                    ${createTable(data.data)}
+                                </div>
+                            </div>
+                        `;
+                    }
+                    
+                    // Display the generated query for transparency
+                    reportQueryDisplay.innerHTML = `<strong>Generated SQL Query:</strong><br><code style="font-size: 11px; line-height: 1.4;">${escapeHtml(data.query)}</code>`;
+                    reportQueryDisplay.style.display = 'block';
+                    
+                    reportContent.innerHTML = reportHTML;
                     reportBox.classList.add('visible');
                     showSuccess('Report generated successfully!', 'reportSuccessMessage');
                 } else {
@@ -566,6 +652,14 @@
                 reportBtn.disabled = false;
             }
         });
+
+        // Toggle raw data visibility
+        function toggleRawData() {
+            const rawDataDiv = document.getElementById('rawDataDiv');
+            if (rawDataDiv) {
+                rawDataDiv.style.display = rawDataDiv.style.display === 'none' ? 'block' : 'none';
+            }
+        }
 
         // Utility functions
         function createTable(data) {
